@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets
+.env
+*.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Data / models (avoid committing large files)
+*.csv
+*.parquet
+*.pkl
+*.pt
+*.ckpt
+data/
+models/
