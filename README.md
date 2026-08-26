@@ -14,7 +14,9 @@ genai-portfolio/
 
 ## Projects
 
-_Coming soon — each project will get its own folder with a README describing the problem, approach, and results._
+- **[resume-app](projects/resume-app/)** -- an agentic AI resume-tailoring tool, built to develop hands-on agentic AI / harness-design skills.
+
+More projects coming soon -- each gets its own folder with a README describing the problem, approach, and results.
 
 ## Setup
 
