@@ -2,12 +2,24 @@
 """
 scraper.py — LinkedIn job search via Playwright browser automation.
 Uses headless Chromium. Adds human-like delays to avoid rate limiting.
+Captures screenshots at key navigation steps for observability.
 """
 
 import asyncio
 import random
+from pathlib import Path
 from typing import List, Optional
 from playwright.async_api import async_playwright, Page
+
+from src.logger import logger
+
+
+def _screenshot_dir(run_id: str) -> Optional[Path]:
+    if not run_id:
+        return None
+    base = Path(__file__).parent.parent / "data" / "screenshots" / run_id
+    base.mkdir(parents=True, exist_ok=True)
+    return base
 
 
 async def _random_delay(min_s: float = 1.0, max_s: float = 3.0) -> None:
@@ -39,7 +51,7 @@ async def _parse_job_card(card) -> Optional[dict]:
             "location": location,
             "posted_date": posted_date,
             "url": url,
-            "description": "",  # fetched separately in _get_job_description()
+            "description": "",
         }
     except Exception:
         return None
@@ -63,11 +75,13 @@ async def search_linkedin(
     location: str = "United States",
     max_results: int = 20,
     headless: bool = True,
+    run_id: str = "",
 ) -> List[dict]:
     """
     Search LinkedIn for jobs matching query and location.
     Returns list of raw job dicts with keys:
       title, company, location, posted_date, url, description
+    Captures screenshots when run_id is provided.
     """
     results = []
     search_url = (
@@ -77,6 +91,9 @@ async def search_linkedin(
         f"&f_WT=2"
         f"&sortBy=DD"
     )
+    screenshot_dir = _screenshot_dir(run_id)
+
+    logger.log_debug(f"Playwright launching headless Chromium")
 
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=headless)
@@ -91,12 +108,19 @@ async def search_linkedin(
         })
 
         try:
+            logger.log_debug(f"Navigating to: {search_url}")
             await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
             await _random_delay(2.0, 4.0)
+
+            if screenshot_dir:
+                screenshot_path = str(screenshot_dir / "01-search-results.png")
+                await page.screenshot(path=screenshot_path)
+                logger.log_debug(f"Screenshot saved: 01-search-results.png")
 
             cards = await page.query_selector_all(
                 ".job-card-list__entity-lockup, .base-card"
             )
+            logger.log_debug(f"Found {len(cards)} job cards on page")
 
             for card in cards[:max_results]:
                 job = await _parse_job_card(card)
@@ -106,14 +130,19 @@ async def search_linkedin(
 
             # Fetch descriptions for top results
             desc_page = await browser.new_page()
-            for job in results[:10]:
+            for i, job in enumerate(results[:10]):
                 if job["url"]:
+                    logger.log_debug(f"Fetching description for: {job['title']} @ {job['company']}")
                     job["description"] = await _get_job_description(desc_page, job["url"])
+                    if screenshot_dir and i == 0:
+                        screenshot_path = str(screenshot_dir / "02-first-job-detail.png")
+                        await desc_page.screenshot(path=screenshot_path)
+                        logger.log_debug(f"Screenshot saved: 02-first-job-detail.png")
                     await _random_delay(1.5, 3.0)
             await desc_page.close()
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.log_debug(f"Scraper error: {e}")
         finally:
             await browser.close()
 
