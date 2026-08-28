@@ -31,9 +31,10 @@ async def _search_one_track(track_name: str, criteria: dict):
     """Search and filter jobs for a single track. Returns FilterResult."""
     query = TRACK_QUERIES.get(track_name, track_name)
     location = "United States" if criteria.get("location", {}).get("country") == "US" else "Worldwide"
+    max_days = criteria.get("posting", {}).get("max_days", 7)
 
-    logger.log_event(f"Scraping track: {track_name} — query: '{query}'")
-    raw_jobs = await search_linkedin(query, location, max_results=25)
+    logger.log_event(f"Scraping track: {track_name} — query: '{query}' (last {max_days} days)")
+    raw_jobs = await search_linkedin(query, location, max_results=25, max_days=max_days)
     logger.log_event(f"Track {track_name}: {len(raw_jobs)} raw jobs found, filtering...")
 
     result = await filter_jobs(raw_jobs, track_name)

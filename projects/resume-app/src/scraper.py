@@ -76,19 +76,23 @@ async def search_linkedin(
     max_results: int = 20,
     headless: bool = True,
     run_id: str = "",
+    max_days: int = 7,
 ) -> List[dict]:
     """
     Search LinkedIn for jobs matching query and location.
     Returns list of raw job dicts with keys:
       title, company, location, posted_date, url, description
     Captures screenshots when run_id is provided.
+    max_days: only return jobs posted within this many days (LinkedIn f_TPR filter).
     """
     results = []
+    f_tpr = f"r{max_days * 86400}"   # LinkedIn: seconds since posting
     search_url = (
         f"https://www.linkedin.com/jobs/search/"
         f"?keywords={query.replace(' ', '%20')}"
         f"&location={location.replace(' ', '%20')}"
         f"&f_WT=2"
+        f"&f_TPR={f_tpr}"
         f"&sortBy=DD"
     )
     screenshot_dir = _screenshot_dir(run_id)
