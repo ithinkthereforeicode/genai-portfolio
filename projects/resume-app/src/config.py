@@ -85,3 +85,24 @@ def save_schedule(data: dict) -> None:
     path = _config_dir() / "schedule.yaml"
     with open(path, "w") as f:
         yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
+
+
+def load_llm_config() -> dict:
+    """Load LLM provider config from config/llm.yaml."""
+    path = _config_dir() / "llm.yaml"
+    if not path.exists():
+        return {
+            "provider": "lmstudio",
+            "model": "google/gemma-4-12b-qat",
+            "max_tokens": 300,
+            "temperature": 0.1,
+        }
+    with open(path, "r") as f:
+        return yaml.safe_load(f) or {}
+
+
+def save_llm_config(data: dict) -> None:
+    """Write LLM config back to llm.yaml."""
+    path = _config_dir() / "llm.yaml"
+    with open(path, "w") as f:
+        yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)

@@ -63,3 +63,20 @@ def test_load_all_tracks(tmp_path, monkeypatch):
     result = load_all_tracks()
     assert "generic-saas" in result
     assert "data-ai" in result
+
+
+def test_load_llm_config(tmp_path, monkeypatch):
+    from src.config import load_llm_config
+    import yaml
+    f = tmp_path / "llm.yaml"
+    f.write_text(yaml.dump({"provider": "anthropic", "model": "claude-haiku-4-5-20251001"}))
+    monkeypatch.setenv("CONFIG_DIR", str(tmp_path))
+    result = load_llm_config()
+    assert result["provider"] == "anthropic"
+
+def test_load_llm_config_missing_returns_default(tmp_path, monkeypatch):
+    from src.config import load_llm_config
+    monkeypatch.setenv("CONFIG_DIR", str(tmp_path))
+    result = load_llm_config()
+    assert "provider" in result
+    assert "model" in result
