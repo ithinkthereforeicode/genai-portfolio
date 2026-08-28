@@ -132,9 +132,9 @@ async def search_linkedin(
                     results.append(job)
                 await _random_delay(0.5, 1.5)
 
-            # Fetch descriptions for top results
+            # Fetch descriptions for all results (needed for accurate LLM filtering)
             desc_page = await browser.new_page()
-            for i, job in enumerate(results[:10]):
+            for i, job in enumerate(results):
                 if job["url"]:
                     logger.log_debug(f"Fetching description for: {job['title']} @ {job['company']}")
                     job["description"] = await _get_job_description(desc_page, job["url"])
