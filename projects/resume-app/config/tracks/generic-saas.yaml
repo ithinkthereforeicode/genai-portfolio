@@ -1,4 +1,5 @@
 enabled: true
+min_score: 25
 keywords:
   domain_exclude:
   - fintech
@@ -20,6 +21,13 @@ keywords:
   - semiconductor
   - ASIC
   - FPGA
+  - logistics
+  - fulfillment
+  - warehousing
+  - supply chain
+  - e-commerce fulfillment
+  - transportation
+  - physical operations
   preferred:
   - B2B
   - cloud

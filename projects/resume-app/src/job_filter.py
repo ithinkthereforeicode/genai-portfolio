@@ -153,6 +153,18 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
             continue
 
         score, rationale = await _score_job(jd, preferred)
+
+        # Auto-skip very low scores — clearly irrelevant even if no hard signal
+        min_score = track.get("min_score", 20)
+        if score < min_score:
+            reason = f"Fit score too low ({score}/100 < minimum {min_score}) — {rationale[:120]}"
+            logger.log_llm(f"[{title} @ {company}] SKIP (low score={score}) — {rationale[:80]}")
+            skipped.append(SkippedJob(
+                title=title, company=company,
+                url=raw.get("url", ""), reason=reason, track=track_name,
+            ))
+            continue
+
         logger.log_llm(f"[{title} @ {company}] KEEP — score={score} | {rationale[:100]}")
         kept.append(JobResult(
             title=title,
