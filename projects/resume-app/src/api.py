@@ -19,6 +19,7 @@ from src.config import (
 )
 from src.scheduler import set_schedule, get_schedule_status, start_scheduler
 from src.job_picker import run_job_search
+from src.logger import logger
 
 app = FastAPI(title="Resume App API")
 
@@ -118,3 +119,18 @@ def get_result(run_id: str):
         return asdict(run)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+
+@app.get("/api/logs/latest")
+def get_latest_logs():
+    latest = store.get_latest_run()
+    if not latest:
+        return {"events": [], "llm": [], "debug": []}
+    return logger.load(latest.run_id)
+
+
+@app.get("/api/logs/{run_id}")
+def get_logs(run_id: str):
+    return logger.load(run_id)

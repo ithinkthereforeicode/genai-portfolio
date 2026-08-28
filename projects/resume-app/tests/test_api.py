@@ -77,3 +77,15 @@ def test_get_run_status_no_runs(client):
         resp = client.get("/api/run/status")
         assert resp.status_code == 200
         assert resp.json()["status"] == "no_runs"
+
+def test_get_latest_logs_no_runs(client):
+    with patch("src.api.store.get_latest_run", return_value=None):
+        resp = client.get("/api/logs/latest")
+        assert resp.status_code == 200
+        assert resp.json()["events"] == []
+
+def test_get_logs_by_run_id(client):
+    with patch("src.api.logger.load", return_value={"events": ["[08:00:00] started"], "llm": [], "debug": []}):
+        resp = client.get("/api/logs/2026-08-27-0800")
+        assert resp.status_code == 200
+        assert len(resp.json()["events"]) == 1
