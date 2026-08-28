@@ -1,38 +1,50 @@
-name: "Generic SaaS VP/Director"
 enabled: true
-
-titles:
-  - "VP of Engineering"
-  - "Senior Director of Engineering"
-  - "Director of Engineering"
-
-title_aliases:
-  - "VP Engineering"
-  - "Vice President of Engineering"
-  - "Vice President Engineering"
-  - "Sr. Director of Engineering"
-
 keywords:
-  required:
-    - "software"
-    - "engineering team"
-    - "engineering organization"
-  preferred:
-    - "B2B"
-    - "cloud"
-    - "platform"
-    - "scale"
-    - "distributed systems"
-    - "agile"
-    - "SaaS"
-    - "product engineering"
-    - "technical leadership"
   domain_exclude:
-    - "fintech"
-    - "banking"
-    - "healthcare"
-    - "HIPAA"
-    - "legal tech"
-    - "legaltech"
-    - "insurance"
-    - "regulated industry"
+  - fintech
+  - banking
+  - healthcare
+  - HIPAA
+  - legal tech
+  - legaltech
+  - insurance
+  - regulated industry
+  - hardware engineering
+  - hardware
+  - embedded systems
+  - firmware
+  - mechanical engineering
+  - electrical engineering
+  - manufacturing
+  - supply chain
+  - semiconductor
+  - ASIC
+  - FPGA
+  preferred:
+  - B2B
+  - cloud
+  - platform
+  - scale
+  - distributed systems
+  - agile
+  - SaaS
+  - product engineering
+  - technical leadership
+  required:
+  - software
+  - engineering team
+  - engineering organization
+  - SaaS
+  - microservices
+  - distributed systems at scale
+  - ARR, churn, CAC
+name: Generic SaaS VP/Director
+title_aliases:
+- VP Engineering
+- Vice President of Engineering
+- Vice President Engineering
+- Sr. Director of Engineering
+titles:
+- VP of Engineering
+- Senior Director of Engineering
+- Director of Engineering

@@ -121,10 +121,24 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
     kept: List[JobResult] = []
     skipped: List[SkippedJob] = []
 
+    domain_excludes = [kw.lower() for kw in track.get("keywords", {}).get("domain_exclude", [])]
+
     for raw in raw_jobs:
         jd = raw.get("description", "")
         title = raw.get("title", "")
         company = raw.get("company", "")
+
+        # Fast title-level check — no LLM call needed
+        title_lower = title.lower()
+        title_skip_kw = next((kw for kw in domain_excludes if kw in title_lower), None)
+        if title_skip_kw:
+            reason = f'Job title contains excluded domain: "{title_skip_kw}"'
+            logger.log_llm(f"[{title} @ {company}] SKIP (title filter) — {reason}")
+            skipped.append(SkippedJob(
+                title=title, company=company,
+                url=raw.get("url", ""), reason=reason, track=track_name,
+            ))
+            continue
 
         skip, reason = await should_skip_job(jd, track, keywords)
         if skip:
