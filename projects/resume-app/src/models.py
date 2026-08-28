@@ -1,3 +1,4 @@
+# src/models.py
 from dataclasses import dataclass, field
 from typing import List, Literal
 
@@ -15,6 +16,14 @@ class JobResult:
     track: str
 
 @dataclass
+class SkippedJob:
+    title: str
+    company: str
+    url: str
+    reason: str
+    track: str
+
+@dataclass
 class RunResult:
     run_id: str
     track: str
@@ -22,3 +31,4 @@ class RunResult:
     started_at: str
     completed_at: str
     jobs: List[JobResult] = field(default_factory=list)
+    skipped: List[SkippedJob] = field(default_factory=list)

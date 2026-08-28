@@ -32,3 +32,20 @@ def test_run_result_fields():
     assert run.run_id == "2026-08-27-0800"
     assert len(run.jobs) == 1
     assert run.triggered_by == "ui"
+
+def test_skipped_job_fields():
+    from src.models import SkippedJob
+    job = SkippedJob(
+        title="VP Eng", company="GovCo", url="https://example.com",
+        reason="Requires US citizenship", track="generic-saas"
+    )
+    assert job.reason == "Requires US citizenship"
+    assert job.track == "generic-saas"
+
+def test_run_result_skipped_default():
+    from src.models import RunResult
+    run = RunResult(
+        run_id="x", track="all", triggered_by="ui",
+        started_at="2026-08-27T08:00:00", completed_at="2026-08-27T08:02:00"
+    )
+    assert run.skipped == []
