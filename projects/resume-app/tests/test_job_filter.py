@@ -18,9 +18,9 @@ async def test_should_skip_citizenship_required():
         assert skip is True
 
 @pytest.mark.asyncio
-async def test_filter_jobs_returns_job_results():
-    """filter_jobs returns a list of JobResult objects."""
-    from src.job_filter import filter_jobs
+async def test_filter_jobs_returns_filter_result():
+    """filter_jobs returns a FilterResult with kept and skipped."""
+    from src.job_filter import filter_jobs, FilterResult
     from src.models import JobResult
     raw_jobs = [
         {
@@ -36,15 +36,17 @@ async def test_filter_jobs_returns_job_results():
         with patch("src.job_filter._score_job", new=AsyncMock(return_value=75)):
             with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": ["SaaS"], "domain_exclude": []}}):
                 with patch("src.job_filter.load_keywords", return_value={"citizenship_exclude": [], "domain_experience_rule": ""}):
-                    results = await filter_jobs(raw_jobs, "generic-saas")
-                    assert isinstance(results, list)
-                    assert len(results) == 1
-                    assert isinstance(results[0], JobResult)
+                    result = await filter_jobs(raw_jobs, "generic-saas")
+                    assert isinstance(result, FilterResult)
+                    assert len(result.kept) == 1
+                    assert isinstance(result.kept[0], JobResult)
+                    assert result.skipped == []
 
 @pytest.mark.asyncio
 async def test_filter_jobs_excludes_skipped():
-    """Jobs flagged by should_skip_job are excluded from results."""
+    """Jobs flagged by should_skip_job go to skipped list with reason."""
     from src.job_filter import filter_jobs
+    from src.models import SkippedJob
     raw_jobs = [
         {
             "title": "VP of Engineering",
@@ -58,26 +60,27 @@ async def test_filter_jobs_excludes_skipped():
     with patch("src.job_filter.should_skip_job", new=AsyncMock(return_value=(True, "Citizenship required"))):
         with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": [], "domain_exclude": []}}):
             with patch("src.job_filter.load_keywords", return_value={"citizenship_exclude": [], "domain_experience_rule": ""}):
-                results = await filter_jobs(raw_jobs, "generic-saas")
-                assert results == []
+                result = await filter_jobs(raw_jobs, "generic-saas")
+                assert result.kept == []
+                assert len(result.skipped) == 1
+                assert isinstance(result.skipped[0], SkippedJob)
+                assert result.skipped[0].reason == "Citizenship required"
 
 @pytest.mark.asyncio
 async def test_filter_jobs_sorts_by_score():
-    """filter_jobs returns jobs sorted by fit_score descending."""
+    """filter_jobs returns kept jobs sorted by fit_score descending."""
     from src.job_filter import filter_jobs
-
     raw_jobs = [
         {"title": "Job A", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://a.com", "description": "A"},
         {"title": "Job B", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://b.com", "description": "B"},
     ]
-    # side_effect must be coroutines, not AsyncMock wrappers — use async lambdas via AsyncMock with return_value
-    score_mock = AsyncMock(side_effect=[30, 80])  # returns integers directly each call
+    score_mock = AsyncMock(side_effect=[30, 80])
     with patch("src.job_filter.should_skip_job", new=AsyncMock(return_value=(False, ""))):
         with patch("src.job_filter._score_job", new=score_mock):
             with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": [], "domain_exclude": []}}):
                 with patch("src.job_filter.load_keywords", return_value={"citizenship_exclude": [], "domain_experience_rule": ""}):
-                    results = await filter_jobs(raw_jobs, "generic-saas")
-                    assert len(results) == 2
-                    # Job B (score 80) should come before Job A (score 30)
-                    assert results[0].fit_score >= results[1].fit_score
-                    assert results[0].title == "Job B"
+                    result = await filter_jobs(raw_jobs, "generic-saas")
+                    kept = result.kept
+                    assert len(kept) == 2
+                    assert kept[0].fit_score >= kept[1].fit_score
+                    assert kept[0].title == "Job B"

@@ -1,21 +1,20 @@
 # src/job_filter.py
 """
 job_filter.py — LLM-based job filtering and scoring.
-Applies the decision logic from the spec:
-  1. LLM judgment calls (citizenship, domain experience)
-  2. Keyword scoring — LLM guided by preferred keywords
+Returns FilterResult(kept, skipped) so callers can see what was filtered and why.
 """
 
-import os
-import json
 import asyncio
+import json
+import os
 import re
-from typing import List, Tuple
+from typing import List, Tuple, NamedTuple
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from src.models import JobResult
+from src.models import JobResult, SkippedJob
 from src.config import load_track, load_keywords
+from src.logger import logger
 
 load_dotenv()
 
@@ -26,8 +25,12 @@ _client = OpenAI(
 _MODEL = os.environ.get("FILTER_MODEL", "google/gemma-4-12b-qat")
 
 
+class FilterResult(NamedTuple):
+    kept: List[JobResult]
+    skipped: List[SkippedJob]
+
+
 def _llm_call(prompt: str) -> str:
-    """Synchronous LLM call."""
     response = _client.chat.completions.create(
         model=_MODEL,
         messages=[{"role": "user", "content": prompt}],
@@ -37,18 +40,16 @@ def _llm_call(prompt: str) -> str:
 
 
 async def _llm_judge(prompt: str) -> str:
-    """Run LLM call in thread pool to avoid blocking the event loop."""
+    logger.log_debug(f"LLM prompt ({len(prompt)} chars): {prompt[:100]}...")
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _llm_call, prompt)
+    result = await loop.run_in_executor(None, _llm_call, prompt)
+    logger.log_debug(f"LLM response: {result[:200]}")
+    return result
 
 
 async def should_skip_job(
     jd: str, track: dict, keywords: dict
 ) -> Tuple[bool, str]:
-    """
-    LLM judgment: should this job be skipped?
-    Returns (should_skip, reason).
-    """
     citizenship_signals = ", ".join(keywords.get("citizenship_exclude", []))
     domain_excludes = ", ".join(track.get("keywords", {}).get("domain_exclude", []))
     domain_rule = keywords.get("domain_experience_rule", "")
@@ -82,7 +83,6 @@ Respond with JSON:
 
 
 async def _score_job(jd: str, preferred_keywords: List[str]) -> int:
-    """Score a job 0-100 based on preferred keyword alignment."""
     keywords_str = ", ".join(preferred_keywords)
     prompt = f"""Score this job description from 0-100 based on how well it matches these preferred keywords: {keywords_str}
 
@@ -107,28 +107,40 @@ Respond with a single integer only."""
     return 50
 
 
-async def filter_jobs(raw_jobs: List[dict], track_name: str) -> List[JobResult]:
+async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
     """
     Filter and score raw job dicts against a track's criteria.
-    Returns a list of JobResult objects, sorted by fit_score descending.
+    Returns FilterResult(kept, skipped) — skipped includes the reason for each.
     """
     track = load_track(track_name)
     keywords = load_keywords()
     preferred = track.get("keywords", {}).get("preferred", [])
 
-    results = []
+    kept: List[JobResult] = []
+    skipped: List[SkippedJob] = []
+
     for raw in raw_jobs:
         jd = raw.get("description", "")
+        title = raw.get("title", "")
+        company = raw.get("company", "")
 
         skip, reason = await should_skip_job(jd, track, keywords)
         if skip:
+            logger.log_llm(f"[{title} @ {company}] SKIP — {reason}")
+            skipped.append(SkippedJob(
+                title=title,
+                company=company,
+                url=raw.get("url", ""),
+                reason=reason,
+                track=track_name,
+            ))
             continue
 
         score = await _score_job(jd, preferred)
-
-        results.append(JobResult(
-            title=raw.get("title", ""),
-            company=raw.get("company", ""),
+        logger.log_llm(f"[{title} @ {company}] KEEP — score={score}")
+        kept.append(JobResult(
+            title=title,
+            company=company,
             location=raw.get("location", ""),
             posted_date=raw.get("posted_date", ""),
             fit_score=score,
@@ -137,5 +149,5 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> List[JobResult]:
             track=track_name,
         ))
 
-    results.sort(key=lambda j: j.fit_score, reverse=True)
-    return results
+    kept.sort(key=lambda j: j.fit_score, reverse=True)
+    return FilterResult(kept=kept, skipped=skipped)
