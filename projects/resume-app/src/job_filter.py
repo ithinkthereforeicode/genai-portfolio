@@ -1,28 +1,19 @@
 # src/job_filter.py
 """
 job_filter.py — LLM-based job filtering and scoring.
+Uses llm_client.llm_complete() — provider-agnostic (Anthropic/OpenRouter/LMStudio).
 Returns FilterResult(kept, skipped) so callers can see what was filtered and why.
 """
 
 import asyncio
 import json
-import os
 import re
 from typing import List, Tuple, NamedTuple
-from dotenv import load_dotenv
-from openai import OpenAI
 
 from src.models import JobResult, SkippedJob
 from src.config import load_track, load_keywords
 from src.logger import logger
-
-load_dotenv()
-
-_client = OpenAI(
-    base_url=os.environ.get("OPENROUTER_BASE_URL", "http://localhost:1234/v1"),
-    api_key=os.environ.get("OPENROUTER_API_KEY", "lm-studio"),
-)
-_MODEL = os.environ.get("FILTER_MODEL", "google/gemma-4-12b-qat")
+from src.llm_client import llm_complete
 
 
 class FilterResult(NamedTuple):
@@ -30,19 +21,10 @@ class FilterResult(NamedTuple):
     skipped: List[SkippedJob]
 
 
-def _llm_call(prompt: str) -> str:
-    response = _client.chat.completions.create(
-        model=_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=200,
-    )
-    return response.choices[0].message.content.strip()
-
-
 async def _llm_judge(prompt: str) -> str:
+    """Call the configured LLM provider via llm_client."""
     logger.log_debug(f"LLM prompt ({len(prompt)} chars): {prompt[:100]}...")
-    loop = asyncio.get_event_loop()
-    result = await loop.run_in_executor(None, _llm_call, prompt)
+    result = await llm_complete(prompt)
     logger.log_debug(f"LLM response: {result[:200]}")
     return result
 
@@ -50,6 +32,10 @@ async def _llm_judge(prompt: str) -> str:
 async def should_skip_job(
     jd: str, track: dict, keywords: dict
 ) -> Tuple[bool, str]:
+    """
+    LLM judgment: should this job be skipped?
+    Returns (should_skip, reason).
+    """
     citizenship_signals = ", ".join(keywords.get("citizenship_exclude", []))
     domain_excludes = ", ".join(track.get("keywords", {}).get("domain_exclude", []))
     domain_rule = keywords.get("domain_experience_rule", "")
@@ -83,6 +69,7 @@ Respond with JSON:
 
 
 async def _score_job(jd: str, preferred_keywords: List[str]) -> int:
+    """Score a job 0-100 based on preferred keyword alignment."""
     keywords_str = ", ".join(preferred_keywords)
     prompt = f"""Score this job description from 0-100 based on how well it matches these preferred keywords: {keywords_str}
 

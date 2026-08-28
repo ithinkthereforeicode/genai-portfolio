@@ -13,7 +13,7 @@ async def test_should_skip_citizenship_required():
         "citizenship_exclude": ["US citizen required", "security clearance required"],
         "domain_experience_rule": "Skip if 3+ years domain required",
     }
-    with patch("src.job_filter._llm_judge", new=AsyncMock(return_value='{"skip": true, "reason": "Requires US citizenship"}')):
+    with patch("src.job_filter.llm_complete", new=AsyncMock(return_value='{"skip": true, "reason": "Requires US citizenship"}')):
         skip, reason = await should_skip_job(jd, track, keywords)
         assert skip is True
 
