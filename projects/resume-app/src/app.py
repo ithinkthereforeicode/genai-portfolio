@@ -94,6 +94,32 @@ with tab_configure:
             value=shared.get("company", {}).get("min_size", 50)
         )
 
+    st.subheader("LLM Settings")
+    try:
+        llm_cfg = api_client.get_llm_config()
+    except Exception:
+        llm_cfg = {"provider": "anthropic", "model": "claude-haiku-4-5-20251001", "max_tokens": 300}
+
+    llm_col1, llm_col2, llm_col3 = st.columns(3)
+    with llm_col1:
+        provider_options = ["anthropic", "openrouter", "lmstudio"]
+        current_provider = llm_cfg.get("provider", "anthropic")
+        provider_idx = provider_options.index(current_provider) if current_provider in provider_options else 0
+        llm_provider = st.selectbox("LLM Provider", options=provider_options, index=provider_idx)
+    with llm_col2:
+        llm_model = st.text_input("Model", value=llm_cfg.get("model", "claude-haiku-4-5-20251001"))
+    with llm_col3:
+        llm_max_tokens = st.number_input(
+            "Max tokens", min_value=50, max_value=2000,
+            value=int(llm_cfg.get("max_tokens", 300))
+        )
+
+    if st.button("💾 Save LLM Config"):
+        updated_llm = {**llm_cfg, "provider": llm_provider, "model": llm_model,
+                       "max_tokens": int(llm_max_tokens)}
+        ok = api_client.save_llm_config(updated_llm)
+        st.success("LLM config saved!") if ok else st.error("Save failed.")
+
     if st.button("💾 Save Config", type="primary"):
         def parse_lines(text):
             return [l.strip() for l in text.strip().splitlines() if l.strip()]

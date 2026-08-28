@@ -85,3 +85,17 @@ def get_result(run_id: str) -> dict:
 def get_logs(run_id: str = "latest") -> dict:
     """Fetch logs for a run_id, or 'latest' for the most recent run."""
     return _get(f"/api/logs/{run_id}")
+
+
+def get_llm_config() -> dict:
+    """Fetch LLM provider config."""
+    return _get("/api/config/llm")
+
+
+def save_llm_config(data: dict) -> bool:
+    """Save LLM provider config."""
+    try:
+        _post("/api/config/llm", data)
+        return True
+    except requests.HTTPError:
+        return False
