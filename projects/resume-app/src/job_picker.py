@@ -1,7 +1,7 @@
 # src/job_picker.py
 """
 job_picker.py — Entry point for job search runs.
-Orchestrates: scraper -> filter -> RunResult.
+Orchestrates: scraper -> filter -> RunResult (with kept + skipped).
 """
 
 import asyncio
@@ -11,7 +11,8 @@ from typing import List
 from src.config import load_shared_criteria
 from src.scraper import search_linkedin
 from src.job_filter import filter_jobs
-from src.models import JobResult, RunResult
+from src.models import JobResult, SkippedJob, RunResult
+from src.logger import logger
 
 TRACKS = ["generic-saas", "data-ai", "identity-security"]
 
@@ -26,14 +27,18 @@ def _run_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%d-%H%M")
 
 
-async def _search_one_track(track_name: str, criteria: dict) -> List[JobResult]:
-    """Search and filter jobs for a single track."""
+async def _search_one_track(track_name: str, criteria: dict):
+    """Search and filter jobs for a single track. Returns FilterResult."""
     query = TRACK_QUERIES.get(track_name, track_name)
     location = "United States" if criteria.get("location", {}).get("country") == "US" else "Worldwide"
-    max_results = 25
 
-    raw_jobs = await search_linkedin(query, location, max_results=max_results)
-    return await filter_jobs(raw_jobs, track_name)
+    logger.log_event(f"Scraping track: {track_name} — query: '{query}'")
+    raw_jobs = await search_linkedin(query, location, max_results=25)
+    logger.log_event(f"Track {track_name}: {len(raw_jobs)} raw jobs found, filtering...")
+
+    result = await filter_jobs(raw_jobs, track_name)
+    logger.log_event(f"Track {track_name}: {len(result.kept)} kept, {len(result.skipped)} filtered out")
+    return result
 
 
 async def run_job_search(
@@ -42,25 +47,34 @@ async def run_job_search(
 ) -> RunResult:
     """
     Run a job search for one or all tracks.
-    Returns a RunResult with all matched jobs.
+    Returns a RunResult with all matched jobs and skipped jobs.
     """
+    logger.clear()
     started_at = datetime.now(timezone.utc).isoformat()
-    criteria = load_shared_criteria()
+    logger.log_event(f"Run started — track: {track}, triggered_by: {triggered_by}")
 
+    criteria = load_shared_criteria()
     tracks_to_search = TRACKS if track == "all" else [track]
 
-    all_jobs: List[JobResult] = []
+    all_kept: List[JobResult] = []
+    all_skipped: List[SkippedJob] = []
+
     for track_name in tracks_to_search:
-        jobs = await _search_one_track(track_name, criteria)
-        all_jobs.extend(jobs)
+        result = await _search_one_track(track_name, criteria)
+        all_kept.extend(result.kept)
+        all_skipped.extend(result.skipped)
 
     completed_at = datetime.now(timezone.utc).isoformat()
+    run_id = _run_id()
+    logger.log_event(f"Run complete — {len(all_kept)} jobs kept, {len(all_skipped)} filtered. run_id: {run_id}")
+    logger.save(run_id)
 
     return RunResult(
-        run_id=_run_id(),
+        run_id=run_id,
         track=track,
         triggered_by=triggered_by,
         started_at=started_at,
         completed_at=completed_at,
-        jobs=all_jobs,
+        jobs=all_kept,
+        skipped=all_skipped,
     )

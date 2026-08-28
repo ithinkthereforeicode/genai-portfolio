@@ -80,3 +80,18 @@ def test_get_latest_run_empty(tmp_path, monkeypatch):
     from src import store
     monkeypatch.setenv("STORE_DIR", str(tmp_path))
     assert store.get_latest_run() is None
+
+def test_save_and_get_run_with_skipped(tmp_path, monkeypatch):
+    """RunResult with skipped jobs round-trips through store correctly."""
+    from src import store
+    from src.models import SkippedJob
+    monkeypatch.setenv("STORE_DIR", str(tmp_path))
+    run = make_run()
+    run.skipped.append(SkippedJob(
+        title="Gov VP", company="GovCo", url="https://gov.com",
+        reason="US citizenship required", track="generic-saas"
+    ))
+    store.save_run(run)
+    loaded = store.get_run(run.run_id)
+    assert len(loaded.skipped) == 1
+    assert loaded.skipped[0].reason == "US citizenship required"

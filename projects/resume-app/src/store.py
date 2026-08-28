@@ -12,7 +12,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import List, Optional
 
-from src.models import JobResult, RunResult
+from src.models import JobResult, RunResult, SkippedJob
 
 
 def _store_dir() -> Path:
@@ -28,9 +28,11 @@ def _run_path(run_id: str) -> Path:
 
 
 def _run_from_dict(data: dict) -> RunResult:
-    """Deserialize a dict into a RunResult (with nested JobResult list)."""
+    """Deserialize a dict into a RunResult (with nested JobResult + SkippedJob lists)."""
+    from src.models import JobResult, RunResult, SkippedJob
     jobs = [JobResult(**j) for j in data.pop("jobs", [])]
-    return RunResult(**data, jobs=jobs)
+    skipped = [SkippedJob(**s) for s in data.pop("skipped", [])]
+    return RunResult(**data, jobs=jobs, skipped=skipped)
 
 
 def save_run(run: RunResult) -> str:
