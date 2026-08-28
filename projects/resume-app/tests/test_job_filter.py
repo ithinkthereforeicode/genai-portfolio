@@ -65,19 +65,19 @@ async def test_filter_jobs_excludes_skipped():
 async def test_filter_jobs_sorts_by_score():
     """filter_jobs returns jobs sorted by fit_score descending."""
     from src.job_filter import filter_jobs
-    from src.models import JobResult
 
     raw_jobs = [
         {"title": "Job A", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://a.com", "description": "A"},
         {"title": "Job B", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://b.com", "description": "B"},
     ]
-    scores = [30, 80]  # first call returns 30, second returns 80
+    # side_effect must be coroutines, not AsyncMock wrappers — use async lambdas via AsyncMock with return_value
+    score_mock = AsyncMock(side_effect=[30, 80])  # returns integers directly each call
     with patch("src.job_filter.should_skip_job", new=AsyncMock(return_value=(False, ""))):
-        with patch("src.job_filter._score_job", side_effect=[AsyncMock(return_value=30), AsyncMock(return_value=80)]):
+        with patch("src.job_filter._score_job", new=score_mock):
             with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": [], "domain_exclude": []}}):
                 with patch("src.job_filter.load_keywords", return_value={"citizenship_exclude": [], "domain_experience_rule": ""}):
-                    # Use a simpler approach - just verify the sort behavior separately
                     results = await filter_jobs(raw_jobs, "generic-saas")
-                    # Results should be sorted descending
-                    if len(results) > 1:
-                        assert results[0].fit_score >= results[-1].fit_score
+                    assert len(results) == 2
+                    # Job B (score 80) should come before Job A (score 30)
+                    assert results[0].fit_score >= results[1].fit_score
+                    assert results[0].title == "Job B"
