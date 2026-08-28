@@ -157,6 +157,8 @@ def add_tracking(data: dict):
         added_at=datetime.now(timezone.utc).isoformat(),
         status=data.get("status", "new"),
         notes=data.get("notes", ""),
+        description=data.get("description", ""),
+        score_rationale=data.get("score_rationale", ""),
     )
     store.add_tracked_job(job)
     return {"status": "added"}

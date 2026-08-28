@@ -9,6 +9,12 @@ from pathlib import Path
 import streamlit as st
 import api_client
 
+# ── Session state defaults ────────────────────────────────────────────────────
+if "switch_to_tracking" not in st.session_state:
+    st.session_state["switch_to_tracking"] = False
+if "just_tracked_urls" not in st.session_state:
+    st.session_state["just_tracked_urls"] = set()
+
 st.set_page_config(
     page_title="Resume App",
     page_icon="📋",
@@ -16,6 +22,17 @@ st.set_page_config(
 )
 
 st.title("📋 Resume App")
+
+# Auto-switch to Tracking tab when jobs are just tracked
+if st.session_state["switch_to_tracking"]:
+    st.session_state["switch_to_tracking"] = False
+    st.components.v1.html("""
+    <script>
+      // Tabs are 0-indexed: Configure=0, Run=1, Results=2, Tracking=3, Logs=4
+      const tabs = window.parent.document.querySelectorAll('[data-baseweb="tab"]');
+      if (tabs.length > 3) { tabs[3].click(); }
+    </script>
+    """, height=0)
 
 TRACKS = {
     "generic-saas": "Generic SaaS VP/Director",
@@ -285,8 +302,13 @@ with tab_results:
 
                     with st.expander("Details", expanded=False):
                         st.write(f"📍 {job.get('location')} · Posted: {job.get('posted_date')}")
+                        if job.get("score_rationale"):
+                            st.info(f"**Why this score:** {job['score_rationale']}")
                         if job.get("gaps"):
                             st.write("**Gaps:**", ", ".join(job["gaps"]))
+                        if job.get("description"):
+                            with st.expander("📄 Job Description", expanded=False):
+                                st.write(job["description"])
                         if job.get("url"):
                             st.link_button("View on LinkedIn", job["url"])
 
@@ -297,7 +319,10 @@ with tab_results:
                             ok = api_client.add_tracked_job(j)
                             if ok:
                                 added += 1
-                        st.success(f"Added {added} job(s) to Tracking tab.")
+                                st.session_state["just_tracked_urls"].add(j["url"])
+                        if added:
+                            st.session_state["switch_to_tracking"] = True
+                            st.rerun()
 
             with col_skipped:
                 st.markdown(f"**❌ Filtered out ({len(skipped)})**")
@@ -351,21 +376,29 @@ with tab_tracking:
 
         st.divider()
 
+        just_tracked = st.session_state.get("just_tracked_urls", set())
+
         for job in tracked:
             score = job.get("fit_score", 0)
             badge = f"🟢 {score}" if score >= 75 else f"🟡 {score}" if score >= 50 else f"🔴 {score}"
             current_status = job.get("status", "new")
+            is_new = job.get("url") in just_tracked
 
             with st.expander(
                 f"{STATUS_LABELS.get(current_status, current_status)}  |  "
                 f"**{job.get('title')}** — {job.get('company')}  ·  {badge}/100",
-                expanded=False,
+                expanded=is_new,
             ):
                 col_a, col_b = st.columns([2, 3])
                 with col_a:
                     st.write(f"📍 {job.get('location', '—')}")
                     st.write(f"🏷 Track: {TRACKS.get(job.get('track', ''), job.get('track', ''))}")
                     st.write(f"📅 Added: {job.get('added_at', '')[:10]}")
+                    if job.get("score_rationale"):
+                        st.info(f"**Score rationale:** {job['score_rationale']}")
+                    if job.get("description"):
+                        with st.expander("📄 Job Description", expanded=False):
+                            st.write(job["description"])
                     if job.get("url"):
                         st.link_button("View on LinkedIn", job["url"])
 
@@ -397,6 +430,9 @@ with tab_tracking:
                             ok = api_client.remove_tracked_job(job["url"])
                             st.success("Removed.") if ok else st.error("Remove failed.")
                             st.rerun()
+
+        # Clear the just-tracked highlight after rendering
+        st.session_state["just_tracked_urls"] = set()
 
 
 # ── Tab 5: Logs ───────────────────────────────────────────────────────────────

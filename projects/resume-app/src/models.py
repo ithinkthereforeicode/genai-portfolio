@@ -15,6 +15,8 @@ class JobResult:
     gaps: List[str]
     url: str
     track: str
+    description: str = ""          # raw job description text
+    score_rationale: str = ""      # LLM explanation of the score
 
 @dataclass
 class SkippedJob:
@@ -37,6 +39,8 @@ class TrackedJob:
     added_at: str
     status: TrackingStatus = "new"
     notes: str = ""
+    description: str = ""
+    score_rationale: str = ""
 
 
 @dataclass

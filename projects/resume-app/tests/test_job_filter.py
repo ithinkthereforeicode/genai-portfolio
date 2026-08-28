@@ -33,7 +33,7 @@ async def test_filter_jobs_returns_filter_result():
         }
     ]
     with patch("src.job_filter.should_skip_job", new=AsyncMock(return_value=(False, ""))):
-        with patch("src.job_filter._score_job", new=AsyncMock(return_value=75)):
+        with patch("src.job_filter._score_job", new=AsyncMock(return_value=(75, "Good SaaS fit"))):
             with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": ["SaaS"], "domain_exclude": []}}):
                 with patch("src.job_filter.load_keywords", return_value={"citizenship_exclude": [], "domain_experience_rule": ""}):
                     result = await filter_jobs(raw_jobs, "generic-saas")
@@ -74,7 +74,7 @@ async def test_filter_jobs_sorts_by_score():
         {"title": "Job A", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://a.com", "description": "A"},
         {"title": "Job B", "company": "Co", "location": "Remote", "posted_date": "2026-08-25", "url": "https://b.com", "description": "B"},
     ]
-    score_mock = AsyncMock(side_effect=[30, 80])
+    score_mock = AsyncMock(side_effect=[(30, "Low match"), (80, "Strong match")])
     with patch("src.job_filter.should_skip_job", new=AsyncMock(return_value=(False, ""))):
         with patch("src.job_filter._score_job", new=score_mock):
             with patch("src.job_filter.load_track", return_value={"keywords": {"preferred": [], "domain_exclude": []}}):

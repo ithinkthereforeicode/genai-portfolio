@@ -68,8 +68,11 @@ Respond with JSON:
     return False, ""
 
 
-async def _score_job(jd: str, preferred_keywords: List[str]) -> int:
-    """Score a job 0-100 based on preferred keyword alignment."""
+async def _score_job(jd: str, preferred_keywords: List[str]) -> Tuple[int, str]:
+    """
+    Score a job 0-100 based on preferred keyword alignment.
+    Returns (score, rationale) — rationale explains which criteria drove the score.
+    """
     keywords_str = ", ".join(preferred_keywords)
     prompt = f"""Score this job description from 0-100 based on how well it matches these preferred keywords: {keywords_str}
 
@@ -82,16 +85,28 @@ Job description:
 {jd[:2000]}
 \"\"\"
 
-Respond with a single integer only."""
+Respond with JSON only:
+{{"score": <integer 0-100>, "rationale": "2-3 sentences explaining which keywords matched or were missing"}}"""
 
     try:
         raw = await _llm_judge(prompt)
-        match = re.search(r"\d+", raw)
-        if match:
-            return min(100, max(0, int(match.group())))
+        start = raw.find("{")
+        end = raw.rfind("}") + 1
+        if start >= 0 and end > start:
+            data = json.loads(raw[start:end])
+            score = min(100, max(0, int(data.get("score", 50))))
+            rationale = str(data.get("rationale", ""))
+            return score, rationale
     except Exception:
         pass
-    return 50
+    # fallback: try to parse a bare integer
+    try:
+        match = re.search(r"\d+", raw)
+        if match:
+            return min(100, max(0, int(match.group()))), ""
+    except Exception:
+        pass
+    return 50, ""
 
 
 async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
@@ -123,8 +138,8 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
             ))
             continue
 
-        score = await _score_job(jd, preferred)
-        logger.log_llm(f"[{title} @ {company}] KEEP — score={score}")
+        score, rationale = await _score_job(jd, preferred)
+        logger.log_llm(f"[{title} @ {company}] KEEP — score={score} | {rationale[:100]}")
         kept.append(JobResult(
             title=title,
             company=company,
@@ -134,6 +149,8 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
             gaps=[],
             url=raw.get("url", ""),
             track=track_name,
+            description=jd[:3000],
+            score_rationale=rationale,
         ))
 
     kept.sort(key=lambda j: j.fit_score, reverse=True)
