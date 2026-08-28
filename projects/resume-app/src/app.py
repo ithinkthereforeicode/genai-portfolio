@@ -6,7 +6,7 @@ Talks to FastAPI backend via src/api_client.py only — never imports src/ modul
 """
 
 import streamlit as st
-from src import api_client
+import api_client
 
 st.set_page_config(
     page_title="Resume App",
