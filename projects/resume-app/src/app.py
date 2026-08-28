@@ -1,10 +1,11 @@
 # src/app.py
 """
 app.py — Streamlit UI for the Resume App.
-Three tabs: Configure, Run & Schedule, Results.
-Talks to FastAPI backend via src/api_client.py only — never imports src/ modules directly.
+Four tabs: Configure, Run & Schedule, Results, Logs.
+Talks to FastAPI backend via api_client only.
 """
 
+from pathlib import Path
 import streamlit as st
 import api_client
 
@@ -22,7 +23,9 @@ TRACKS = {
     "identity-security": "Identity + Security",
 }
 
-tab_configure, tab_run, tab_results = st.tabs(["⚙️ Configure", "▶ Run & Schedule", "📊 Results"])
+tab_configure, tab_run, tab_results, tab_logs = st.tabs([
+    "⚙️ Configure", "▶ Run & Schedule", "📊 Results", "🪵 Logs"
+])
 
 # ── Tab 1: Configure ──────────────────────────────────────────────────────────
 with tab_configure:
@@ -39,9 +42,7 @@ with tab_configure:
         track_config = api_client.get_track_config(selected_track)
     except Exception:
         st.error("Could not load config — is the API running on port 8000?")
-        track_config = {"titles": [], "title_aliases": [], "keywords": {
-            "required": [], "preferred": [], "domain_exclude": []
-        }}
+        track_config = {"titles": [], "keywords": {"required": [], "preferred": [], "domain_exclude": []}}
 
     st.subheader("Job Titles")
     titles = st.text_area(
@@ -218,16 +219,106 @@ with tab_results:
                 f"Completed: {run.get('completed_at', '')}"
             )
             jobs = run.get("jobs", [])
-            if not jobs:
-                st.write("_No matching jobs in this run._")
-            for job in jobs:
-                score = job.get("fit_score", "?")
-                with st.expander(
-                    f"**{job.get('title')}** — {job.get('company')} · Fit: {score}/100"
-                ):
-                    st.write(f"📍 {job.get('location')} · Posted: {job.get('posted_date')}")
-                    if job.get("gaps"):
-                        st.write("**Gaps:**", ", ".join(job["gaps"]))
-                    if job.get("url"):
-                        st.link_button("View on LinkedIn", job["url"])
+            skipped = run.get("skipped", [])
+
+            col_kept, col_skipped = st.columns(2)
+            with col_kept:
+                st.markdown(f"**✅ Kept ({len(jobs)})**")
+                if not jobs:
+                    st.write("_No matching jobs._")
+                for job in jobs:
+                    score = job.get("fit_score", "?")
+                    with st.expander(f"{job.get('title')} — {job.get('company')} · {score}/100"):
+                        st.write(f"📍 {job.get('location')} · Posted: {job.get('posted_date')}")
+                        if job.get("gaps"):
+                            st.write("**Gaps:**", ", ".join(job["gaps"]))
+                        if job.get("url"):
+                            st.link_button("View on LinkedIn", job["url"])
+
+            with col_skipped:
+                st.markdown(f"**❌ Filtered out ({len(skipped)})**")
+                if not skipped:
+                    st.write("_Nothing filtered._")
+                for s in skipped:
+                    with st.expander(f"{s.get('title')} — {s.get('company')}"):
+                        st.caption(s.get("reason", "No reason recorded"))
+                        if s.get("url"):
+                            st.link_button("View on LinkedIn", s["url"])
+
             st.divider()
+
+
+# ── Tab 4: Logs ───────────────────────────────────────────────────────────────
+with tab_logs:
+    st.header("Run Logs")
+
+    try:
+        runs = api_client.get_results(limit=20)
+        run_ids = [r["run_id"] for r in runs] if runs else []
+    except Exception:
+        run_ids = []
+
+    log_col1, log_col2 = st.columns([2, 1])
+    with log_col1:
+        selected_log_run = st.selectbox(
+            "Select run",
+            options=["latest"] + run_ids,
+        )
+    with log_col2:
+        st.write("")  # spacer
+        load_logs = st.button("🔄 Load Logs")
+
+    try:
+        logs = api_client.get_logs(selected_log_run)
+    except Exception:
+        logs = {"events": [], "llm": [], "debug": []}
+
+    col_ev, col_llm, col_dbg = st.columns(3)
+    with col_ev:
+        st.subheader("📋 Run Events")
+        st.text_area(
+            "events",
+            value="\n".join(logs.get("events", [])) or "(no events yet)",
+            height=400,
+            label_visibility="collapsed",
+        )
+    with col_llm:
+        st.subheader("🤖 LLM Decisions")
+        st.text_area(
+            "llm",
+            value="\n".join(logs.get("llm", [])) or "(no LLM decisions yet)",
+            height=400,
+            label_visibility="collapsed",
+        )
+    with col_dbg:
+        st.subheader("🔍 Full Debug")
+        st.text_area(
+            "debug",
+            value="\n".join(logs.get("debug", [])) or "(no debug logs yet)",
+            height=400,
+            label_visibility="collapsed",
+        )
+
+    # Screenshots
+    st.divider()
+    st.subheader("📸 Screenshots")
+
+    if selected_log_run and selected_log_run != "latest":
+        screenshot_dir = Path(__file__).parent.parent / "data" / "screenshots" / selected_log_run
+    else:
+        # Find most recent screenshot dir
+        base = Path(__file__).parent.parent / "data" / "screenshots"
+        dirs = sorted(base.glob("*/"), reverse=True) if base.exists() else []
+        screenshot_dir = dirs[0] if dirs else Path("/nonexistent")
+
+    if screenshot_dir.exists():
+        imgs = sorted(screenshot_dir.glob("*.png"))
+        if imgs:
+            cols = st.columns(min(len(imgs), 4))
+            for i, img_path in enumerate(imgs[:8]):
+                with cols[i % min(len(imgs), 4)]:
+                    st.image(str(img_path), caption=img_path.stem, use_column_width=True)
+        else:
+            st.info("No screenshots for this run.")
+    else:
+        st.info("No screenshots yet — screenshots are captured during live job searches.")

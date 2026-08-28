@@ -80,3 +80,8 @@ def get_results(track: Optional[str] = None, limit: int = 20) -> list:
 
 def get_result(run_id: str) -> dict:
     return _get(f"/api/results/{run_id}")
+
+
+def get_logs(run_id: str = "latest") -> dict:
+    """Fetch logs for a run_id, or 'latest' for the most recent run."""
+    return _get(f"/api/logs/{run_id}")
