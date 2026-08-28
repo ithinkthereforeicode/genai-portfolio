@@ -1,0 +1,42 @@
+name: "Identity + Security"
+enabled: true
+
+titles:
+  - "VP of Identity"
+  - "VP of Security Engineering"
+  - "VP of Cybersecurity"
+  - "Senior Director of Identity"
+  - "Director of Identity & Access Management"
+  - "Director of Security Engineering"
+
+title_aliases:
+  - "VP Security"
+  - "VP IAM"
+  - "VP of InfoSec"
+  - "Sr. Director of Security"
+
+keywords:
+  required:
+    - "identity"
+    - "security"
+    - "IAM"
+    - "authentication"
+    - "authorization"
+  preferred:
+    - "zero trust"
+    - "CIAM"
+    - "SSO"
+    - "OAuth"
+    - "SAML"
+    - "PAM"
+    - "cybersecurity"
+    - "cloud security"
+    - "security platform"
+    - "SIEM"
+    - "access management"
+  domain_exclude:
+    - "government"
+    - "defense"
+    - "ITAR"
+    - "classified"
+    - "clearance required"

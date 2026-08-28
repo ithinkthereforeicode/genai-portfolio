@@ -1,0 +1,44 @@
+name: "Data + AI"
+enabled: true
+
+titles:
+  - "VP of Data & AI"
+  - "VP of Artificial Intelligence"
+  - "VP of Machine Learning"
+  - "Senior Director of Data & AI"
+  - "Director of Data & AI"
+  - "Director of Machine Learning"
+
+title_aliases:
+  - "VP of Data"
+  - "VP AI"
+  - "VP ML"
+  - "Sr. Director of Data"
+
+keywords:
+  required:
+    - "data"
+    - "AI"
+    - "machine learning"
+    - "LLM"
+    - "analytics"
+  preferred:
+    - "MLOps"
+    - "data platform"
+    - "data engineering"
+    - "GenAI"
+    - "foundation models"
+    - "RAG"
+    - "fine-tuning"
+    - "PyTorch"
+    - "Spark"
+    - "data infrastructure"
+    - "AI strategy"
+  domain_exclude:
+    - "fintech"
+    - "banking"
+    - "healthcare"
+    - "HIPAA"
+    - "legal tech"
+    - "insurance"
+    - "regulated industry"

@@ -1,0 +1,12 @@
+# Shared filters — apply to all tracks
+location:
+  remote: true
+  country: "US"
+
+posting:
+  max_days: 14
+
+company:
+  min_size: 50
+
+keywords_file: "config/keywords.yaml"

@@ -1,0 +1,38 @@
+name: "Generic SaaS VP/Director"
+enabled: true
+
+titles:
+  - "VP of Engineering"
+  - "Senior Director of Engineering"
+  - "Director of Engineering"
+
+title_aliases:
+  - "VP Engineering"
+  - "Vice President of Engineering"
+  - "Vice President Engineering"
+  - "Sr. Director of Engineering"
+
+keywords:
+  required:
+    - "software"
+    - "engineering team"
+    - "engineering organization"
+  preferred:
+    - "B2B"
+    - "cloud"
+    - "platform"
+    - "scale"
+    - "distributed systems"
+    - "agile"
+    - "SaaS"
+    - "product engineering"
+    - "technical leadership"
+  domain_exclude:
+    - "fintech"
+    - "banking"
+    - "healthcare"
+    - "HIPAA"
+    - "legal tech"
+    - "legaltech"
+    - "insurance"
+    - "regulated industry"

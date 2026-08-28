@@ -1,0 +1,17 @@
+# Global exclusions — apply to all tracks
+exclude:
+  - "contract"
+  - "freelance"
+  - "intern"
+  - "entry level"
+
+citizenship_exclude:
+  - "US citizen required"
+  - "security clearance required"
+  - "must be authorized to work"
+  - "active clearance required"
+
+# Handled by LLM judgment — these are signals, not exact strings
+domain_experience_rule: >
+  Skip if JD explicitly requires 3+ years of specific
+  domain experience as a hard requirement.
