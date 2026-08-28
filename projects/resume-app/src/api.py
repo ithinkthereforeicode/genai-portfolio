@@ -6,7 +6,7 @@ All config I/O via src/config.py, all result I/O via src/store.py.
 """
 
 from dataclasses import asdict
-from typing import Optional
+from typing import Optional, List
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -132,6 +132,54 @@ def get_result(run_id: str):
         return asdict(run)
     except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
+
+
+# ── Tracking ──────────────────────────────────────────────────────────────────
+
+@app.get("/api/tracking")
+def get_tracking():
+    jobs = store.get_tracked_jobs()
+    return [asdict(j) for j in jobs]
+
+
+@app.post("/api/tracking")
+def add_tracking(data: dict):
+    from src.models import TrackedJob
+    from datetime import datetime, timezone
+    job = TrackedJob(
+        url=data["url"],
+        title=data["title"],
+        company=data["company"],
+        location=data.get("location", ""),
+        fit_score=data.get("fit_score", 0),
+        track=data.get("track", ""),
+        run_id=data.get("run_id", ""),
+        added_at=datetime.now(timezone.utc).isoformat(),
+        status=data.get("status", "new"),
+        notes=data.get("notes", ""),
+    )
+    store.add_tracked_job(job)
+    return {"status": "added"}
+
+
+@app.patch("/api/tracking")
+def update_tracking(data: dict):
+    ok = store.update_tracked_job(
+        url=data["url"],
+        status=data.get("status"),
+        notes=data.get("notes"),
+    )
+    if not ok:
+        raise HTTPException(status_code=404, detail="Job not found in tracking")
+    return {"status": "updated"}
+
+
+@app.delete("/api/tracking")
+def delete_tracking(url: str):
+    ok = store.remove_tracked_job(url)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Job not found in tracking")
+    return {"status": "removed"}
 
 
 # ── Logs ──────────────────────────────────────────────────────────────────────

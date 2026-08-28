@@ -24,6 +24,18 @@ def _post(path: str, data: dict = None, params: dict = None):
     return resp.json()
 
 
+def _patch(path: str, data: dict = None):
+    resp = requests.patch(f"{API_URL}{path}", json=data or {})
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _delete(path: str, params: dict = None):
+    resp = requests.delete(f"{API_URL}{path}", params=params or {})
+    resp.raise_for_status()
+    return resp.json()
+
+
 def get_track_config(track: str) -> dict:
     return _get(f"/api/config/{track}")
 
@@ -96,6 +108,45 @@ def save_llm_config(data: dict) -> bool:
     """Save LLM provider config."""
     try:
         _post("/api/config/llm", data)
+        return True
+    except requests.HTTPError:
+        return False
+
+
+# ── Tracking ──────────────────────────────────────────────────────────────────
+
+def get_tracked_jobs() -> list:
+    """Fetch all tracked jobs."""
+    return _get("/api/tracking")
+
+
+def add_tracked_job(job: dict) -> bool:
+    """Add a job to tracking."""
+    try:
+        _post("/api/tracking", job)
+        return True
+    except requests.HTTPError:
+        return False
+
+
+def update_tracked_job(url: str, status: str = None, notes: str = None) -> bool:
+    """Update status/notes for a tracked job."""
+    try:
+        data = {"url": url}
+        if status is not None:
+            data["status"] = status
+        if notes is not None:
+            data["notes"] = notes
+        _patch("/api/tracking", data)
+        return True
+    except requests.HTTPError:
+        return False
+
+
+def remove_tracked_job(url: str) -> bool:
+    """Remove a job from tracking."""
+    try:
+        _delete("/api/tracking", params={"url": url})
         return True
     except requests.HTTPError:
         return False

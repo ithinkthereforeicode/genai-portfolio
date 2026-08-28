@@ -1,8 +1,9 @@
 # src/models.py
 from dataclasses import dataclass, field
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 TriggeredBy = Literal["ui", "schedule", "claude-mobile"]
+TrackingStatus = Literal["new", "applied", "phone_screen", "interview", "offer", "rejected", "passed"]
 
 @dataclass
 class JobResult:
@@ -22,6 +23,21 @@ class SkippedJob:
     url: str
     reason: str
     track: str
+
+@dataclass
+class TrackedJob:
+    """A job the user has chosen to track through their application process."""
+    url: str                          # unique key
+    title: str
+    company: str
+    location: str
+    fit_score: int
+    track: str
+    run_id: str
+    added_at: str
+    status: TrackingStatus = "new"
+    notes: str = ""
+
 
 @dataclass
 class RunResult:
