@@ -49,6 +49,19 @@ def post_shared_config(data: dict):
     return {"status": "saved"}
 
 
+@app.get("/api/config/llm")
+def get_llm_config_endpoint():
+    from src.config import load_llm_config
+    return load_llm_config()
+
+
+@app.post("/api/config/llm")
+def post_llm_config_endpoint(data: dict):
+    from src.config import save_llm_config
+    save_llm_config(data)
+    return {"status": "saved"}
+
+
 @app.get("/api/config/{track}")
 def get_track_config(track: str):
     try:
@@ -101,21 +114,6 @@ def post_schedule(data: dict):
         enabled=data.get("enabled", False),
         tracks=data.get("tracks", "all"),
     )
-    return {"status": "saved"}
-
-
-# ── LLM Config ────────────────────────────────────────────────────────────────
-
-@app.get("/api/config/llm")
-def get_llm_config_endpoint():
-    from src.config import load_llm_config
-    return load_llm_config()
-
-
-@app.post("/api/config/llm")
-def post_llm_config_endpoint(data: dict):
-    from src.config import save_llm_config
-    save_llm_config(data)
     return {"status": "saved"}
 
 
