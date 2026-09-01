@@ -60,13 +60,29 @@ async def _parse_job_card(card) -> Optional[dict]:
 async def _get_job_description(page: Page, url: str) -> str:
     """Navigate to a job page and extract the description."""
     try:
-        await page.goto(url, wait_until="domcontentloaded", timeout=15000)
-        await _random_delay(1.0, 2.0)
-        desc_el = await page.query_selector(".description__text, .show-more-less-html__markup")
-        if desc_el:
-            return (await desc_el.inner_text()).strip()
-    except Exception:
-        pass
+        await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+        await _random_delay(2.0, 4.0)  # longer delay to avoid throttle
+
+        # Try multiple selectors — LinkedIn varies by page type
+        for selector in [
+            ".show-more-less-html__markup",
+            ".description__text",
+            ".description__text--rich",
+            ".jobs-description-content__text",
+            "#job-details",
+        ]:
+            desc_el = await page.query_selector(selector)
+            if desc_el:
+                text = (await desc_el.inner_text()).strip()
+                if len(text) > 50:   # ignore tiny/empty matches
+                    return text
+
+        # Fallback: check if we hit a login wall
+        page_text = await page.inner_text("body")
+        if "Sign in" in page_text and len(page_text) < 2000:
+            logger.log_debug(f"LinkedIn login wall hit for: {url}")
+    except Exception as e:
+        logger.log_debug(f"Description fetch failed for {url}: {e}")
     return ""
 
 

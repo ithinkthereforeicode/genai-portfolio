@@ -128,6 +128,17 @@ async def filter_jobs(raw_jobs: List[dict], track_name: str) -> FilterResult:
         title = raw.get("title", "")
         company = raw.get("company", "")
 
+        # Skip jobs with no description — can't score accurately
+        if not jd.strip():
+            logger.log_llm(f"[{title} @ {company}] SKIP (no description fetched)")
+            skipped.append(SkippedJob(
+                title=title, company=company,
+                url=raw.get("url", ""),
+                reason="No job description available (LinkedIn may have blocked the fetch)",
+                track=track_name,
+            ))
+            continue
+
         # Fast title-level check — no LLM call needed
         title_lower = title.lower()
         title_skip_kw = next((kw for kw in domain_excludes if kw in title_lower), None)
