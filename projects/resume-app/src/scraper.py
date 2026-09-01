@@ -15,6 +15,17 @@ from playwright.async_api import async_playwright, Page
 
 from src.logger import logger
 
+SESSION_FILE = Path(__file__).parent.parent / "data" / "linkedin_session.json"
+
+
+def _load_session() -> Optional[dict]:
+    """Load saved LinkedIn session state if available."""
+    if SESSION_FILE.exists():
+        import json
+        with open(SESSION_FILE) as f:
+            return json.load(f)
+    return None
+
 
 def _screenshot_dir(run_id: str) -> Optional[Path]:
     if not run_id:
@@ -105,16 +116,23 @@ async def scrape_job_cards(
     screenshot_dir = _screenshot_dir(run_id)
     logger.log_debug(f"LinkedIn URL: {search_url}")
 
+    session = _load_session()
+    if session:
+        logger.log_debug("Using saved LinkedIn session (authenticated)")
+    else:
+        logger.log_debug("No LinkedIn session found — running as anonymous (limited results)")
+
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.set_extra_http_headers({
-            "User-Agent": (
+        ctx = await browser.new_context(
+            storage_state=session if session else None,
+            user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/120.0.0.0 Safari/537.36"
-            )
-        })
+            ),
+        )
+        page = await ctx.new_page()
 
         try:
             await page.goto(search_url, wait_until="domcontentloaded", timeout=30000)
@@ -153,16 +171,18 @@ async def fetch_descriptions(
     """
     screenshot_dir = _screenshot_dir(run_id)
 
+    session = _load_session()
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=True)
-        page = await browser.new_page()
-        await page.set_extra_http_headers({
-            "User-Agent": (
+        ctx = await browser.new_context(
+            storage_state=session if session else None,
+            user_agent=(
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) "
                 "Chrome/120.0.0.0 Safari/537.36"
-            )
-        })
+            ),
+        )
+        page = await ctx.new_page()
 
         try:
             for i, job in enumerate(jobs):
