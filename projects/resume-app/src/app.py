@@ -215,6 +215,34 @@ with tab_run:
             options=["all"] + list(TRACKS.keys()),
             format_func=lambda k: "All tracks" if k == "all" else TRACKS[k],
         )
+
+        # ── Query preview before running ──────────────────────────────────────
+        from src.config import load_track as _load_track, build_linkedin_query as _build_q, load_shared_criteria as _load_shared
+        try:
+            _shared = _load_shared()
+            _max_days = _shared.get("posting", {}).get("max_days", 1)
+            _f_tpr = f"r{_max_days * 86400}"
+
+            preview_tracks = list(TRACKS.keys()) if run_track == "all" else [run_track]
+            for _t in preview_tracks:
+                _tc = _load_track(_t)
+                _q = _tc.get("search_query") or _build_q(_tc)
+                _encoded = _q.replace(" ", "%20")
+                _url = (
+                    f"https://www.linkedin.com/jobs/search/"
+                    f"?keywords={_encoded}"
+                    f"&location=United%20States"
+                    f"&f_WT=2&f_TPR={_f_tpr}&sortBy=DD"
+                )
+                with st.expander(f"🔍 LinkedIn query — {TRACKS[_t]}", expanded=True):
+                    st.code(_q, language=None)
+                    st.caption(
+                        f"📅 Last {_max_days} day(s) · 🌐 Remote · 🇺🇸 United States  "
+                        f"[Open in LinkedIn ↗]({_url})"
+                    )
+        except Exception as _e:
+            st.caption(f"Could not load query preview: {_e}")
+
         if st.button("▶ Run Now", type="primary"):
             with st.spinner("Running job search..."):
                 try:
