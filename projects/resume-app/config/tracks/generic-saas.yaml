@@ -1,5 +1,8 @@
 enabled: true
-min_score: 25
+search_query: >-
+  ("VP Engineering" OR "Vice President, Engineering" OR "Senior Director of Engineering" OR "Director of Engineering")
+  AND ("data platform" OR "data engineering" OR "big data")
+  AND ("SaaS" OR "cloud")
 keywords:
   domain_exclude:
   - fintech
@@ -46,6 +49,7 @@ keywords:
   - microservices
   - distributed systems at scale
   - ARR, churn, CAC
+min_score: 25
 name: Generic SaaS VP/Director
 title_aliases:
 - VP Engineering

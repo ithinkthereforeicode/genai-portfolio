@@ -71,6 +71,14 @@ with tab_configure:
         st.error("Could not load config — is the API running on port 8000?")
         track_config = {"titles": [], "keywords": {"required": [], "preferred": [], "domain_exclude": []}}
 
+    st.subheader("LinkedIn Search Query")
+    search_query = st.text_area(
+        "Boolean search query sent to LinkedIn (quotes, AND/OR supported)",
+        value=track_config.get("search_query", ""),
+        height=80,
+        help='Example: ("VP Engineering" OR "Director of Engineering") AND ("SaaS" OR "cloud")',
+    )
+
     st.subheader("Job Titles")
     titles = st.text_area(
         "Titles (one per line)",
@@ -153,6 +161,7 @@ with tab_configure:
 
         updated_track = {
             **track_config,
+            "search_query": search_query.strip(),
             "titles": parse_lines(titles),
             "keywords": {
                 "required": parse_lines(required),

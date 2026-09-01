@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from src.config import load_shared_criteria
+from src.config import load_shared_criteria, load_track
 from src.scraper import search_linkedin
 from src.job_filter import filter_jobs
 from src.models import JobResult, SkippedJob, RunResult
@@ -16,6 +16,7 @@ from src.logger import logger
 
 TRACKS = ["generic-saas", "data-ai", "identity-security"]
 
+# Fallback queries if track YAML has no search_query field
 TRACK_QUERIES = {
     "generic-saas": "VP of Engineering OR Director of Engineering",
     "data-ai": "VP of Data AI OR Director of Machine Learning",
@@ -29,11 +30,15 @@ def _run_id() -> str:
 
 async def _search_one_track(track_name: str, criteria: dict):
     """Search and filter jobs for a single track. Returns FilterResult."""
-    query = TRACK_QUERIES.get(track_name, track_name)
+    # Prefer search_query from track YAML, fall back to hardcoded default
+    track_cfg = load_track(track_name)
+    query = track_cfg.get("search_query") or TRACK_QUERIES.get(track_name, track_name)
+
     location = "United States" if criteria.get("location", {}).get("country") == "US" else "Worldwide"
     max_days = criteria.get("posting", {}).get("max_days", 7)
 
-    logger.log_event(f"Scraping track: {track_name} — query: '{query}' (last {max_days} days)")
+    logger.log_event(f"Scraping track: {track_name} — last {max_days} days")
+    logger.log_debug(f"LinkedIn query: {query}")
     raw_jobs = await search_linkedin(query, location, max_results=25, max_days=max_days)
     logger.log_event(f"Track {track_name}: {len(raw_jobs)} raw jobs found, filtering...")
 
