@@ -71,14 +71,6 @@ with tab_configure:
         st.error("Could not load config — is the API running on port 8000?")
         track_config = {"titles": [], "keywords": {"required": [], "preferred": [], "domain_exclude": []}}
 
-    st.subheader("LinkedIn Search Query")
-    search_query = st.text_area(
-        "Boolean search query sent to LinkedIn (quotes, AND/OR supported)",
-        value=track_config.get("search_query", ""),
-        height=80,
-        help='Example: ("VP Engineering" OR "Director of Engineering") AND ("SaaS" OR "cloud")',
-    )
-
     st.subheader("Job Titles")
     titles = st.text_area(
         "Titles (one per line)",
@@ -149,6 +141,35 @@ with tab_configure:
             value=int(llm_cfg.get("max_tokens", 300))
         )
 
+    # ── LinkedIn Query Preview ─────────────────────────────────────────────────
+    st.subheader("🔍 LinkedIn Search Query")
+    st.caption("Auto-built from your titles and required keywords above. Edit to override.")
+
+    def _build_preview(titles_text, required_text):
+        titles = [t.strip() for t in titles_text.strip().splitlines() if t.strip()]
+        aliases = track_config.get("title_aliases", [])
+        all_titles = titles + aliases
+        req = [k.strip() for k in required_text.strip().splitlines() if k.strip()]
+        title_clause = " OR ".join(f'"{t}"' for t in all_titles)
+        kw_clause = " OR ".join(f'"{k}"' for k in req[:4])
+        if title_clause and kw_clause:
+            return f"({title_clause}) AND ({kw_clause})"
+        return f"({title_clause})" if title_clause else ""
+
+    auto_query = _build_preview(titles, required)
+    # Show existing manual override if set, otherwise show auto-built
+    current_query = track_config.get("search_query") or auto_query
+    search_query = st.text_area(
+        "LinkedIn boolean query",
+        value=current_query,
+        height=100,
+        label_visibility="collapsed",
+    )
+    if search_query != auto_query and search_query.strip():
+        st.caption("⚠️ Using manual override — clear this field to revert to auto-generated.")
+    else:
+        st.caption(f"✅ Auto-generated from {len([t for t in titles.splitlines() if t.strip()])} titles + {len([k for k in required.splitlines() if k.strip()])} required keywords.")
+
     if st.button("💾 Save LLM Config"):
         updated_llm = {**llm_cfg, "provider": llm_provider, "model": llm_model,
                        "max_tokens": int(llm_max_tokens)}
@@ -161,7 +182,7 @@ with tab_configure:
 
         updated_track = {
             **track_config,
-            "search_query": search_query.strip(),
+            "search_query": search_query.strip() if search_query.strip() != auto_query else "",
             "titles": parse_lines(titles),
             "keywords": {
                 "required": parse_lines(required),

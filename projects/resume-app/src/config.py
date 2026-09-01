@@ -87,6 +87,31 @@ def save_schedule(data: dict) -> None:
         yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True)
 
 
+def build_linkedin_query(track: dict) -> str:
+    """
+    Auto-generate a LinkedIn boolean search query from track config.
+
+    Structure:
+      (<title1> OR <title2> ...) AND (<req_kw1> OR <req_kw2> ...)
+
+    Titles drive what LinkedIn finds; required keywords narrow it down.
+    Preferred keywords are kept for LLM scoring only (adding them here
+    would over-restrict results).
+    """
+    titles = track.get("titles", []) + track.get("title_aliases", [])
+    required = track.get("keywords", {}).get("required", [])
+
+    title_clause = " OR ".join(f'"{t}"' for t in titles if t)
+    # Pick up to 4 required keywords most likely to narrow correctly
+    kw_clause = " OR ".join(f'"{k}"' for k in required[:4] if k)
+
+    if title_clause and kw_clause:
+        return f"({title_clause}) AND ({kw_clause})"
+    elif title_clause:
+        return f"({title_clause})"
+    return ""
+
+
 def load_llm_config() -> dict:
     """Load LLM provider config from config/llm.yaml."""
     path = _config_dir() / "llm.yaml"

@@ -8,7 +8,7 @@ import asyncio
 from datetime import datetime, timezone
 from typing import List
 
-from src.config import load_shared_criteria, load_track
+from src.config import load_shared_criteria, load_track, build_linkedin_query
 from src.scraper import search_linkedin
 from src.job_filter import filter_jobs
 from src.models import JobResult, SkippedJob, RunResult
@@ -30,9 +30,13 @@ def _run_id() -> str:
 
 async def _search_one_track(track_name: str, criteria: dict):
     """Search and filter jobs for a single track. Returns FilterResult."""
-    # Prefer search_query from track YAML, fall back to hardcoded default
     track_cfg = load_track(track_name)
-    query = track_cfg.get("search_query") or TRACK_QUERIES.get(track_name, track_name)
+    # Priority: 1) manual search_query in YAML, 2) auto-built from titles+keywords, 3) hardcoded fallback
+    query = (
+        track_cfg.get("search_query")
+        or build_linkedin_query(track_cfg)
+        or TRACK_QUERIES.get(track_name, track_name)
+    )
 
     location = "United States" if criteria.get("location", {}).get("country") == "US" else "Worldwide"
     max_days = criteria.get("posting", {}).get("max_days", 7)
