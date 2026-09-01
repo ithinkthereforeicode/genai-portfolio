@@ -8,7 +8,7 @@ Returns FilterResult(kept, skipped) so callers can see what was filtered and why
 import asyncio
 import json
 import re
-from typing import List, Tuple, NamedTuple
+from typing import List, Optional, Tuple, NamedTuple
 
 from src.models import JobResult, SkippedJob
 from src.config import load_track, load_keywords
@@ -19,6 +19,12 @@ from src.llm_client import llm_complete
 class FilterResult(NamedTuple):
     kept: List[JobResult]
     skipped: List[SkippedJob]
+
+
+def _title_excluded(title: str, domain_excludes: List[str]) -> Optional[str]:
+    """Return the matched exclude keyword if the job title contains it, else None."""
+    title_lower = title.lower()
+    return next((kw for kw in domain_excludes if kw in title_lower), None)
 
 
 async def _llm_judge(prompt: str) -> str:
