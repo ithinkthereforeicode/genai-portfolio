@@ -217,7 +217,7 @@ with tab_run:
         )
 
         # ── Query preview before running ──────────────────────────────────────
-        from src.config import load_track as _load_track, build_linkedin_query as _build_q, load_shared_criteria as _load_shared
+        from config import load_track as _load_track, build_linkedin_query as _build_q, load_shared_criteria as _load_shared
         try:
             _shared = _load_shared()
             _max_days = _shared.get("posting", {}).get("max_days", 1)
