@@ -1,7 +1,7 @@
 # tests/test_api.py
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, AsyncMock, MagicMock
+from unittest.mock import patch, AsyncMock
 from src.models import JobResult, RunResult
 
 def make_run(run_id="2026-08-27-0800", track="generic-saas"):

@@ -1,6 +1,6 @@
 # tests/test_job_picker.py
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from src.models import JobResult, RunResult, SkippedJob
 from src.job_filter import FilterResult
 

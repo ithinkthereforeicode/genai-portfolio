@@ -178,7 +178,7 @@ with tab_configure:
 
     if st.button("💾 Save Config", type="primary"):
         def parse_lines(text):
-            return [l.strip() for l in text.strip().splitlines() if l.strip()]
+            return [line.strip() for line in text.strip().splitlines() if line.strip()]
 
         updated_track = {
             **track_config,

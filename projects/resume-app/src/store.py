@@ -29,7 +29,7 @@ def _run_path(run_id: str) -> Path:
 
 def _run_from_dict(data: dict) -> RunResult:
     """Deserialize a dict into a RunResult (with nested JobResult + SkippedJob lists)."""
-    from src.models import JobResult, RunResult, SkippedJob, TrackedJob
+    from src.models import RunResult
     jobs = [JobResult(**j) for j in data.pop("jobs", [])]
     skipped = [SkippedJob(**s) for s in data.pop("skipped", [])]
     return RunResult(**data, jobs=jobs, skipped=skipped)

@@ -31,7 +31,6 @@ async def main():
 
         input("  → Press Enter once you are logged in and can see your LinkedIn feed: ")
 
-        cookies = await ctx.cookies()
         storage = await ctx.storage_state()
 
         SESSION_FILE.parent.mkdir(parents=True, exist_ok=True)
