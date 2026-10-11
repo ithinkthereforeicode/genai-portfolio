@@ -1,6 +1,5 @@
 # tests/test_scheduler.py
-from unittest.mock import patch, MagicMock
-import pytest
+from unittest.mock import patch
 
 def test_set_schedule_enabled():
     from src import scheduler as sched_module

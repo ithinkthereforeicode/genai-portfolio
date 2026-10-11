@@ -1,7 +1,5 @@
 # tests/test_store.py
 import pytest
-import json
-from pathlib import Path
 from src.models import JobResult, RunResult
 
 def make_run(run_id="2026-08-26-0800", track="generic-saas"):

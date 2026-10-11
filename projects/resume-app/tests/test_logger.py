@@ -1,7 +1,4 @@
 # tests/test_logger.py
-import pytest
-import json
-from pathlib import Path
 
 def test_log_event_appends():
     from src.logger import RunLogger

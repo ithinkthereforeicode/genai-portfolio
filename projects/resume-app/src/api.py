@@ -6,7 +6,7 @@ All config I/O via src/config.py, all result I/O via src/store.py.
 """
 
 from dataclasses import asdict
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,7 +15,6 @@ from src import store
 from src.config import (
     load_track, save_track,
     load_shared_criteria, save_shared_criteria,
-    load_keywords, save_keywords,
 )
 from src.scheduler import set_schedule, get_schedule_status, start_scheduler
 from src.job_picker import run_job_search

@@ -1,6 +1,6 @@
 # tests/test_scraper.py
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 
 @pytest.mark.asyncio
 async def test_search_linkedin_returns_list():

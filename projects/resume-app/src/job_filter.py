@@ -5,7 +5,6 @@ Uses llm_client.llm_complete() — provider-agnostic (Anthropic/OpenRouter/LMStu
 Returns FilterResult(kept, skipped) so callers can see what was filtered and why.
 """
 
-import asyncio
 import json
 import re
 from typing import List, Optional, Tuple, NamedTuple

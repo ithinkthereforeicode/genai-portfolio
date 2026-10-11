@@ -1,6 +1,6 @@
 # src/models.py
 from dataclasses import dataclass, field
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 TriggeredBy = Literal["ui", "schedule", "claude-mobile"]
 TrackingStatus = Literal["new", "applied", "phone_screen", "interview", "offer", "rejected", "passed"]

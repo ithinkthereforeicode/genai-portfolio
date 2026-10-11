@@ -39,4 +39,3 @@ Delivered:
 - config/tracks/generic-saas.yaml, data-ai.yaml, identity-security.yaml
 
 Ready for Plan 2 (Job Picker).
-

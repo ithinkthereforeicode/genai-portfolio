@@ -1,7 +1,5 @@
 # tests/test_config.py
-import pytest
 import yaml
-from pathlib import Path
 
 def test_load_track_returns_dict(tmp_path, monkeypatch):
     """load_track reads a track YAML and returns a dict."""

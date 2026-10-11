@@ -4,7 +4,6 @@ job_picker.py — Entry point for job search runs.
 Orchestrates: scraper -> filter -> RunResult (with kept + skipped).
 """
 
-import asyncio
 from datetime import datetime, timezone
 from typing import List
 
